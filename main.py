@@ -4,6 +4,7 @@ import requests as rs
 import os
 import ctypes
 from subprocess import Popen, CREATE_NEW_CONSOLE
+from removeAds import removeAds
 
 dummy_url = '''https%3A%2F%2Fwww.viu.com%2Fott%2Fth%2Fth%2Fvod%2F190303%2FBe-Melodramatic'''
 
@@ -29,14 +30,19 @@ def getUrl(url):
 
 def dlSub(url,file_name,lang):
     #if not os.path.exists("./subtitle/{}".format(file_name.split('-'))):
+    #print(url,file_name)
+    #print(file_name)
+    file_name = file_name.replace(':','')
     if not os.path.exists("./subtitle/"):
         os.makedirs("./subtitle")
     with open("./subtitle/{}({}).srt".format(file_name,lang), "wb") as file:
         response = rs.get(url)
+        #print(response.text)
         file.write(response.content)
         file.close()
 
 def dlVdo(command,ep_name):
+    #print(command)
     if not os.path.exists("./vdo/"):
         os.makedirs("./vdo")
     command = command.split(" ")
@@ -52,10 +58,13 @@ def getSubtitle_list(raw):
     for tbody in s.find_all('tbody'):
         for tr in tbody.find_all('tr'):
             for td in tr.find_all('td'):
-                if(td.text == 'ffmpeg code'):
+                if(td.text == 'ffmpeg code'): #get FFmpeg code
                     print("GET ffmpeg...",end="\r")
                     url = td.find('a')
-                    ffmpeg_i = fetch(url['href'])
+                    ffmpeg_html = fetch(url['href'])
+                    ff = bs(ffmpeg_html,"html.parser") 
+                    ffmpeg_i = ff.find('code').text
+                    #rint(ffmpeg_i)
                     _FILES['ffmpeg'] = ffmpeg_i
                     print("GET ffmpeg......OK")
                 if(td.text.strip() in _S_LANG):
@@ -91,7 +100,7 @@ def menu(ep_name):
                         dlSub(_FILES[i][0],ep_name,_S_LANG_E[j])
                     except KeyError:
                         pass
-            if x > 0 and x < len(_S_LANG):
+            if x > 0 and x < len(_S_LANG) + 1:
                 lang  = _S_LANG[x-1]
                 dlSub(_FILES[lang][0],ep_name,_S_LANG_E[x-1])
         if c == 3:
@@ -100,7 +109,9 @@ def menu(ep_name):
             break
 
 def getInfo(url=""):
-    html = fetch(url)
+    # html = fetch(url)
+    html = removeAds(url) #fetch html from grab vdo with remove ads
+    print(url)
     s = bs(html,"html.parser")
     for ultag in s.find_all('ul', {'class': 'video-alllist clearfix common-panel'}):
         for litag in ultag.find_all('li'):
@@ -133,7 +144,7 @@ def main():
                 break
             if c > 0 and c < len(_list_vdo)+1:
                 grb_url = getUrl(_VIU_URL+_list_vdo[c-1][1])
-
+                #print(grb_url)
                 raw = fetch(_GRAB_VDO_URL + grb_url) #rs.get(_GRAB_VDO_URL + dummy_url)
                 getSubtitle_list(raw)
                 menu(_list_vdo[c-1][0])
@@ -143,3 +154,4 @@ if __name__ == '__main__':
     main()
     os.system('cls')
     tprint('GOOD  BYE')
+    #https://www.viu.com/ott/th/th/vod/208032/Be-Melodramatic
