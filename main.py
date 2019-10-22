@@ -17,6 +17,7 @@ _FILES = {}
 _S_LANG = ['简体中文','English','繁體中文','Indo','ภาษาไทย']
 _S_LANG_E = ['Simplified Chinese','English','traditional Chinese','Indo','Thai']
 
+_HISTORY = []
 
 def fetch(url):
     r = rs.get(url)
@@ -28,10 +29,38 @@ def getUrl(url):
     url = url.replace(":","%3A")
     return _GRAB_VDO_URL + url
 
+def readHistory():
+    if not os.path.isfile('./adscontent/history.txt'):
+        file = open('./adscontent/history.txt','w+')
+    else:
+        with open('./adscontent/history.txt','r') as file:
+            _HISTORY = file.readlines()
+            for i,a in enumerate(_HISTORY):
+                n = a.split("/")
+                print(i+1,n[len(n)-1])
+            file.close()
+    return _HISTORY
+
+
+def checkHistory(url):
+    if not os.path.isfile('./adscontent/history.txt'):
+        file = open('./adscontent/history.txt','w+')
+    else:
+        with open('./adscontent/history.txt','r') as file:
+            history = file.readlines()
+            file.close()
+            for n in history:
+                if url.split("/")[-1] == n.split("/")[-1]:
+                    return
+            c = str(input("New series fond. Add to history ? [y][n] : "))
+            if(c == "y"):
+                w = open('./adscontent/history.txt','a+')
+                w.write("\n" + url)
+                w.close()
+            file.close()
+
+
 def dlSub(url,file_name,lang):
-    #if not os.path.exists("./subtitle/{}".format(file_name.split('-'))):
-    #print(url,file_name)
-    #print(file_name)
     file_name = file_name.replace(':','')
     if not os.path.exists("./subtitle/"):
         os.makedirs("./subtitle")
@@ -109,7 +138,6 @@ def menu(ep_name):
             break
 
 def getInfo(url=""):
-    # html = fetch(url)
     html = removeAds(url) #fetch html from grab vdo with remove ads
     print(url)
     s = bs(html,"html.parser")
@@ -121,20 +149,32 @@ def getInfo(url=""):
                 _list_vdo.append([title_name,a['href']])
 
 def main():
+    
     while(True):
+        url = ""
+        _HISTORY.clear()
         _list_vdo.clear()
         _FILES.clear()
         print("Enter [e] to Close Program")
-        url = str(input("Enter Url : "))
-        if url == "e":
+        c = str(input('Select from history [h] , Input new url [u] : '))
+        if(c == "h"):
+            print("\n")
+            h = readHistory()
+            print("\n")
+            index = int(input("Select series : "))
+            url = h[index-1]
+        elif(c == "u"):
+            url = str(input("Enter Url : "))
+        if c == "e":
             break
+        checkHistory(url)
         getInfo(url)
         print("GET Vdo List...\n")
         print("Fond {} EP\n".format(len(_list_vdo)))
         while(True):
             os.system('cls')
             tprint('Select    Episode')
-            for i,v in enumerate(_list_vdo,start=1):
+            for i,v in enumerate(reversed(_list_vdo),start=1):
                 print(i,v[0]) 
             print("0 To Input url")
             c = int(input("\nPlease Select Episode : ") or -1)
@@ -143,13 +183,14 @@ def main():
                 tprint("VIU    VDO    DOWNLOAD")
                 break
             if c > 0 and c < len(_list_vdo)+1:
-                grb_url = getUrl(_VIU_URL+_list_vdo[c-1][1])
+                grb_url = getUrl(_VIU_URL+_list_vdo[11-c][1])
                 #print(grb_url)
                 raw = fetch(_GRAB_VDO_URL + grb_url) #rs.get(_GRAB_VDO_URL + dummy_url)
                 getSubtitle_list(raw)
-                menu(_list_vdo[c-1][0])
+                menu(_list_vdo[11-c][0])
 
 if __name__ == '__main__':
+    os.system("cls")
     tprint("VIU    VDO    DOWNLOAD")
     main()
     os.system('cls')
